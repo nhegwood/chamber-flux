@@ -1,68 +1,43 @@
 # This function reads a raw text output file from a Los Gatos Research (LGR) Greenhouse Gas Analyzer (GGA)
 # and exports the measurement times and CO2 and CH4 concentration data. 
 #
-# This function requires the chron library to be loaded for the times() function.
-#
-# The format_LGR_output() function requires two input variables:
-#   1. LGR_files = a vector of LGR file names to be processed
-#   2. LGR_match_files = index of LGR file names in LGR_files that match single day
-# Output of this function is a data frame with measurement times and CO2 & CH4 concentration data
 
-format_LGR_output <- function(LGR_files, match_LGR_files){
+format_LGR_output <- function(init){
+
+  ## With this chunk of script we can make one data table from a list of many. It reads all files from a folder and their subfolders and merge them.
+  # It does not read compressed files
+  # LGR sometimes saves files in .zip. The first part of this chunk is for decompress all .zip files from a given folder
   
-  # Aggregate the LGR files if there is more than one file per day.
-  if(length(match_LGR_files)>1){
-    for(day.file in 1:length(match_LGR_files)){ 
-      
-      # Read LGR data and clean out extra columns and rows
-      LGR_tmp  <- read.csv(LGR_files[match_LGR_files[day.file]],header=TRUE,skip=1,stringsAsFactors = FALSE)
-      LGR_tmp  <- LGR_tmp[,1:14] #only use first 14 columns
-      
-      if(sum(LGR_tmp[,1]=="-----BEGIN PGP MESSAGE-----")>0){
-        LGR_tmp  <- LGR_tmp[1:(which(LGR_tmp[,1]=="-----BEGIN PGP MESSAGE-----")-1),]
-      }
-      
-      # Format messy column 1 into LGR date & time.
-      LGR_date_tmp   <- strsplit(sapply(LGR_tmp$Time, as.character)," ")
-      LGR_date <- LGR_time <- vector()
-      for(i in 1:length(LGR_date_tmp)){
-        LGR_date[i] <- LGR_date_tmp[[i]][3]
-        LGR_time[i] <- LGR_date_tmp[[i]][4]
-      }
-      LGR_tmp_times <- times(LGR_time) 
-      
-      # Aggregate each file into a big daily file.
-      if(day.file == 1){
-        LGR_data  = LGR_tmp
-        LGR.times = LGR_tmp_times
-      } else {
-        LGR_data  = rbind(LGR_data,LGR_tmp)
-        LGR.times = c(LGR.times,LGR_tmp_times)
-      }
-    }
-  } else { # If there is only one file for this day:
-    # Read LGR data and clean out unnecessary columns and text rows.
-    LGR_data  <- read.csv(LGR_files[match_LGR_files],
-                          header=TRUE,skip=1,stringsAsFactors = FALSE)
-    LGR_data  <- LGR_data[,1:14] #only use first 14 columns
-    if(sum(LGR_data[,1]=="-----BEGIN PGP MESSAGE-----")>0){
-      LGR_data  <- LGR_data[1:(which(LGR_data[,1]=="-----BEGIN PGP MESSAGE-----")-1),]
-    }
-    
-    # Format column 1 into LGR date & time.
-    LGR_date_tmp   <- strsplit(sapply(LGR_data$Time, as.character)," ")
-    LGR_date <- LGR_time <- vector()
-    for(i in 1:length(LGR_date_tmp)){
-      LGR_date[i] <- LGR_date_tmp[[i]][3]
-      LGR_time[i] <- LGR_date_tmp[[i]][4]
-    }
-    LGR.times <- times(LGR_time) 
-  }
+  # List all .zip files including sub-folders
+  list_of_zip_files <- list.files(path = init$data_path, recursive=TRUE, 
+                                  pattern="\\.zip$", full.names=TRUE)
   
-  # Format output for times, CO2, and CH4
-  LGR_dat <- data.frame(times = LGR.times,
-                             CO2 = LGR_data$X.CO2.d_ppm, 
-                        CH4 = LGR_data$X.CH4.d_ppm)
+  # Decompress all .zip files from a given folder and subfolders
+  # Make a copy of the uncompressed folder in the same folder as .zip was
+  sapply(list_of_zip_files, 
+         function(i) unzip(i, exdir=gsub("\\.zip$", "", i))) 
   
-  return(LGR_dat)
+  # List all txt files, merge them in one single file and create a variable 
+  # with the name of each original file 
+  list_of_txt_files <- list.files(path = init$data_path, recursive = TRUE,
+                                  pattern = "\\.txt$", full.names = T)  #with full.name=F the function save the name of each file instead of the name of each path. This is useful for the idcol in the next section 
+  
+  # Read all the files and create a Path column to store filenames
+  LGR_data <- rbindlist(sapply(list_of_txt_files, fread, simplify = FALSE),
+                      use.names = TRUE, idcol = "Path", fill=T)
+
+  #convert table to dataframe format
+  LGR_data <- as.data.frame(LGR_data) 
+  
+  # remove duplicated columns
+  LGR_data <- LGR_data[,!duplicated(colnames(LGR_data))]
+  
+  # Format LGR time
+  LGR_data = LGR_data %>%
+    mutate(times = mdy_hms(Time)) %>%
+    rename(CH4 = `[CH4]d_ppm`,
+           CO2 = `[CO2]d_ppm`) %>%
+    select(times, CO2, CH4)
+  
+  return(LGR_data)
 }

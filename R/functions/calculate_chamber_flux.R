@@ -37,12 +37,12 @@ calculate_chamber_flux <- function(raw_files, date_time, init){
   # Use the appropriate analyzer function to compile dates & files
   if(init$analyzer == "lgr") {
     # Read raw LGR analyzer CO2/CH4 concentration data
-    conc_data <- format_LGR_output_v2(init)
+    conc_data <- format_LGR_output(init)
     flux_startdelay <- init$startdelay
     flux_end   <- init$fluxend
   } else if(init$analyzer == "picarro"){ 
     # Read raw Picarro analyzer CO2/CH4 concentration data
-    conc_data <- format_Picarro_output_v2(raw_files, date_time) 
+    conc_data <- format_Picarro_output(raw_files, date_time) 
     flux_startdelay <- init$startdelay
     flux_end   <- init$fluxend
   } 
