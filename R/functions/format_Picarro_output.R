@@ -1,8 +1,6 @@
 # This function reads a raw text output file from a Picarro GasScouter Analyzer and exports the 
 # time, CO2, and CH4 concentration data. 
 #
-# This function requires the chron library to be loaded for the times() function.
-#
 # The format_Picarro_output() function requires two inputs:
 #   1. raw_files = a vector of raw file names to be processed
 # Output of this function is a data frame with measurement times and CO2 & CH4 concentration data
