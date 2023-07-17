@@ -52,13 +52,7 @@ calculate_chamber_flux <- function(raw_files, date_time, init){
   if("end_time" %in% colnames(date_time)){
     rep_times <- date_time %>% 
       mutate(start = start_time+lubridate::seconds(flux_startdelay))
-    if(init$analyzer == "picarro"){
-      rep_times$end = lubridate::ymd_hms(paste(rep_times$Date,
-                                                rep_times$end_time))
-    } else if(init$analyzer == "lgr"){
-      rep_times$end = rep_times$end_time
-    }
-    
+    rep_times$end = rep_times$end_time
   } else {
     rep_times <- date_time %>% #filter(date_time, dates == flux_dates[d]) %>%
       mutate(start = startx+lubridate::seconds(flux_startdelay),
