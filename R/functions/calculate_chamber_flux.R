@@ -62,6 +62,9 @@ calculate_chamber_flux <- function(raw_files, date_time, init){
   
   # Loop over unique measurements and calculate CO2 & CH4 flux
   for(c in 1:nrow(rep_times)){
+
+        print(paste("Chamber ID = ",rep_times$UniqueID[c]))
+
     
     # Index for storage: rep #
     rep_index = c
