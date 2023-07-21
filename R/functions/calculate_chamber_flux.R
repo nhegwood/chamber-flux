@@ -63,7 +63,7 @@ calculate_chamber_flux <- function(raw_files, date_time, init){
   # Loop over unique measurements and calculate CO2 & CH4 flux
   for(c in 1:nrow(rep_times)){
 
-        print(paste("Chamber ID = ",rep_times$UniqueID[c]))
+    print(paste("Chamber ID = ",rep_times$UniqueID[c]))
 
     
     # Index for storage: rep #
@@ -85,7 +85,8 @@ calculate_chamber_flux <- function(raw_files, date_time, init){
       # Find replicate start time and match to nearest time in raw concentration file
       conc_rep <- dplyr::filter(conc_data, 
                                 times >= rep_times$start[c] & 
-                                  times <= rep_times$end[c])
+                                  times <= rep_times$end[c]) %>%
+        filter(CO2 < 2000) # remove any large spikes
       
       # Get flux period in seconds (so units work out)
       flux_seconds = lubridate::interval(conc_data$times[1],conc_rep$times)/lubridate::seconds(1)
